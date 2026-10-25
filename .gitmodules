@@ -1,0 +1,6 @@
+[submodule "extern/base"]
+	path = extern/base
+	url = git@github.com:neuralnet-cpp-dev/base.neuralnet.cpp.git
+[submodule "extern/kvrecord"]
+	path = extern/kvrecord
+	url = git@github.com:neuralnet-cpp-dev/kvrecord.neuralnet.cpp.git
