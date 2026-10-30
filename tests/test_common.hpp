@@ -18,10 +18,12 @@
 #define NN_TEST_COUNTER g_fail
 #endif
 
-#define CHECK(cond, msg)                                                     \
-    do {                                                                     \
-        if (!(cond)) {                                                       \
-            std::printf("[FAIL] %s:%d: %s\n", __FILE__, __LINE__, (msg));    \
-            ++NN_TEST_COUNTER;                                               \
-        }                                                                    \
+#define CHECK(cond, msg)                                                  \
+    do                                                                    \
+    {                                                                     \
+        if (!(cond))                                                      \
+        {                                                                 \
+            std::printf("[FAIL] %s:%d: %s\n", __FILE__, __LINE__, (msg)); \
+            ++NN_TEST_COUNTER;                                            \
+        }                                                                 \
     } while (0)

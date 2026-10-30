@@ -30,10 +30,11 @@ int g_fail = 0;
 
 #include "test_common.hpp"
 
-namespace {
+namespace
+{
 
 // ── 原 text_train read_file_lines 的 trim 语义（只读参考实现）──────────
-std::vector<std::string> ref_read_docs(const std::string &buffer)
+std::vector<std::string> ref_read_docs(const std::string& buffer)
 {
     std::vector<std::string> docs;
     std::size_t pos = 0;
@@ -41,35 +42,34 @@ std::vector<std::string> ref_read_docs(const std::string &buffer)
     while (pos < total)
     {
         std::size_t line_start = pos;
-        while (pos < total && buffer[pos] != '\n') ++pos;
+        while (pos < total && buffer[pos] != '\n')
+            ++pos;
         std::size_t line_end = pos;
         if (pos < total) ++pos;
-        while (line_start < line_end &&
-               (buffer[line_start] == ' ' || buffer[line_start] == '\t'
-                || buffer[line_start] == '\r'))
+        while (line_start < line_end && (buffer[line_start] == ' ' || buffer[line_start] == '\t' ||
+                                         buffer[line_start] == '\r'))
             ++line_start;
         while (line_end > line_start &&
-               (buffer[line_end - 1] == ' ' || buffer[line_end - 1] == '\t'
-                || buffer[line_end - 1] == '\r'))
+               (buffer[line_end - 1] == ' ' || buffer[line_end - 1] == '\t' ||
+                buffer[line_end - 1] == '\r'))
             --line_end;
-        if (line_start < line_end)
-            docs.emplace_back(buffer, line_start, line_end - line_start);
+        if (line_start < line_end) docs.emplace_back(buffer, line_start, line_end - line_start);
     }
     return docs;
 }
 
 // ── 原 text_train mark_assistant_spans（全局扫描 + doc 边界重置）────────
-std::vector<unsigned char> ref_mark_assistant_spans(
-    const std::vector<std::size_t> &flow, const std::vector<std::size_t> &doc_ids,
-    std::size_t asst_begin, std::size_t asst_end, std::size_t &asst_count)
+std::vector<unsigned char> ref_mark_assistant_spans(const std::vector<std::size_t>& flow,
+                                                    const std::vector<std::size_t>& doc_ids,
+                                                    std::size_t asst_begin, std::size_t asst_end,
+                                                    std::size_t& asst_count)
 {
     std::vector<unsigned char> mask(flow.size(), 0);
     bool in_asst = false;
     asst_count = 0;
     for (std::size_t i = 0; i < flow.size(); ++i)
     {
-        if (!doc_ids.empty() && i > 0 && doc_ids[i] != doc_ids[i - 1])
-            in_asst = false;
+        if (!doc_ids.empty() && i > 0 && doc_ids[i] != doc_ids[i - 1]) in_asst = false;
         const std::size_t id = flow[i];
         if (id == asst_begin) in_asst = true;
         mask[i] = in_asst ? 1u : 0u;
@@ -79,26 +79,24 @@ std::vector<unsigned char> ref_mark_assistant_spans(
     return mask;
 }
 
-void write_file(const std::string &path, const std::string &content)
+void write_file(const std::string& path, const std::string& content)
 {
     std::ofstream ofs(path, std::ios::binary);
     ofs.write(content.data(), static_cast<std::streamsize>(content.size()));
 }
 
-std::string read_file(const std::string &path)
+std::string read_file(const std::string& path)
 {
     std::ifstream ifs(path, std::ios::binary);
-    return std::string((std::istreambuf_iterator<char>(ifs)),
-                        std::istreambuf_iterator<char>());
+    return std::string((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
 }
 
-const std::string kCorpus =
-    "the quick brown fox jumps over the lazy dog\r\n"
-    "   padded line with spaces   \n"
-    "\n"
-    "\t tab padded \t\r\n"
-    "人工神经网络深度学习训练中。\n"
-    "final line of corpus\n";
+const std::string kCorpus = "the quick brown fox jumps over the lazy dog\r\n"
+                            "   padded line with spaces   \n"
+                            "\n"
+                            "\t tab padded \t\r\n"
+                            "人工神经网络深度学习训练中。\n"
+                            "final line of corpus\n";
 
 // 假想对话标记 ID（掩码语义测试用；不依赖真实分词器）
 constexpr std::size_t kAsstBegin = 101;
@@ -126,7 +124,7 @@ int main()
     auto docs_r = nn::read_text_docs(corpus_path);
     CHECK(docs_r.has_value(), "read_text_docs 成功");
     if (!docs_r) return 1;
-    const std::vector<std::string> &docs = *docs_r;
+    const std::vector<std::string>& docs = *docs_r;
     CHECK(docs == ref_read_docs(kCorpus), "行 trim 规则与原 read_file_lines 逐字一致");
     CHECK(docs.size() == 5, "doc 数正确（空行/全空白行被跳过）");
 
@@ -144,8 +142,7 @@ int main()
         std::vector<std::vector<unsigned char>> per_doc_masks;
         for (std::size_t i = 0; i < tokens.size(); ++i)
         {
-            per_doc_masks.push_back(
-                nn::mark_assistant_span(tokens[i], kAsstBegin, kAsstEnd));
+            per_doc_masks.push_back(nn::mark_assistant_span(tokens[i], kAsstBegin, kAsstEnd));
             for (std::size_t t : tokens[i])
             {
                 flow.push_back(t);
@@ -153,11 +150,10 @@ int main()
             }
         }
         std::size_t asst_count = 0;
-        const auto ref = ref_mark_assistant_spans(flow, doc_ids, kAsstBegin,
-                                                  kAsstEnd, asst_count);
+        const auto ref = ref_mark_assistant_spans(flow, doc_ids, kAsstBegin, kAsstEnd, asst_count);
         CHECK(asst_count > 0, "参考掩码含 assistant 目标");
         std::vector<unsigned char> flat;
-        for (const auto &m : per_doc_masks)
+        for (const auto& m : per_doc_masks)
             flat.insert(flat.end(), m.begin(), m.end());
         CHECK(flat == ref, "逐 doc 掩码与全局 mark_assistant_spans 逐位一致");
     }
@@ -178,16 +174,13 @@ int main()
 
         // train：插一个空 token doc（不丢行号语义）
         build.train_docs = tokens;
-        build.train_docs.insert(build.train_docs.begin() + 3,
-                                std::vector<std::size_t>{});
+        build.train_docs.insert(build.train_docs.begin() + 3, std::vector<std::size_t>{});
         std::vector<std::vector<unsigned char>> train_masks;
         if (assistant)
         {
-            for (const auto &t : tokens)
-                train_masks.push_back(
-                    nn::mark_assistant_span(t, kAsstBegin, kAsstEnd));
-            train_masks.insert(train_masks.begin() + 3,
-                               std::vector<unsigned char>{});
+            for (const auto& t : tokens)
+                train_masks.push_back(nn::mark_assistant_span(t, kAsstBegin, kAsstEnd));
+            train_masks.insert(train_masks.begin() + 3, std::vector<unsigned char>{});
             build.train_masks = std::move(train_masks);
         }
         // test：前 3 个 doc
@@ -212,8 +205,7 @@ int main()
             if (assistant)
                 exp_mask.insert(exp_mask.end(), build.train_masks[i].begin(),
                                 build.train_masks[i].end());
-            else
-                exp_mask.insert(exp_mask.end(), build.train_docs[i].size(), 1u);
+            else exp_mask.insert(exp_mask.end(), build.train_docs[i].size(), 1u);
         }
 
         const std::string path = "dataset_test_" + tag + ".nndataset";
@@ -222,15 +214,14 @@ int main()
             auto wr = nn::write_nndataset(oss, build);
             CHECK(wr.has_value(), (tag + ": write_nndataset 成功").c_str());
             if (!wr) continue;
-            write_file(path, nn::write_file_label(nn::NNDATASET_MAGIC,
-                                                  nn::NNDATASET_FILE_VERSION)
-                                 + oss.str());
+            write_file(path, nn::write_file_label(nn::NNDATASET_MAGIC, nn::NNDATASET_FILE_VERSION) +
+                                 oss.str());
         }
 
         auto ds_r = nn::Dataset::open(path);
         CHECK(ds_r.has_value(), (tag + ": Dataset::open 成功").c_str());
         if (!ds_r) continue;
-        const nn::Dataset &ds = *ds_r;
+        const nn::Dataset& ds = *ds_r;
         CHECK(ds.info().kind == nn::DatasetKind::Text, (tag + ": kind=text").c_str());
         CHECK(ds.info().num_docs == build.train_docs.size(),
               (tag + ": num_docs（含空 doc）").c_str());
@@ -251,8 +242,7 @@ int main()
         CHECK(corpus_r->doc_ids == exp_ids,
               (tag + ": doc_ids 逐位一致（空 doc 不丢行号）").c_str());
         CHECK(corpus_r->loss_mask == exp_mask,
-              (tag + (assistant ? ": loss_mask 逐位一致"
-                                : ": loss_scope=all 合成全 1 掩码"))
+              (tag + (assistant ? ": loss_mask 逐位一致" : ": loss_scope=all 合成全 1 掩码"))
                   .c_str());
 
         // test 子集（前 3 个 doc）逐位一致
@@ -271,30 +261,25 @@ int main()
                 }
                 if (assistant)
                 {
-                    const auto m = nn::mark_assistant_span(tokens[i], kAsstBegin,
-                                                           kAsstEnd);
+                    const auto m = nn::mark_assistant_span(tokens[i], kAsstBegin, kAsstEnd);
                     t_mask.insert(t_mask.end(), m.begin(), m.end());
                 }
-                else
-                    t_mask.insert(t_mask.end(), tokens[i].size(), 1u);
+                else t_mask.insert(t_mask.end(), tokens[i].size(), 1u);
             }
-            CHECK(test_r->token_flow == t_flow && test_r->doc_ids == t_ids
-                      && test_r->loss_mask == t_mask,
+            CHECK(test_r->token_flow == t_flow && test_r->doc_ids == t_ids &&
+                      test_r->loss_mask == t_mask,
                   (tag + ": test 子集逐位一致").c_str());
         }
 
         // ── 4. text_doc 随机访问 ────────────────────────────────
         {
             auto d0 = ds.text_doc(nn::DatasetSubset::Train, 0);
-            CHECK(d0.has_value() && d0->doc_id == 1
-                      && d0->tokens == build.train_docs[0],
+            CHECK(d0.has_value() && d0->doc_id == 1 && d0->tokens == build.train_docs[0],
                   (tag + ": text_doc(train,0) 内容一致").c_str());
             // 空 doc（下标 3）
             auto d3 = ds.text_doc(nn::DatasetSubset::Train, 3);
-            CHECK(d3.has_value() && d3->tokens.empty(),
-                  (tag + ": text_doc 空 doc").c_str());
-            auto bad = ds.text_doc(nn::DatasetSubset::Train,
-                                   build.train_docs.size() + 10);
+            CHECK(d3.has_value() && d3->tokens.empty(), (tag + ": text_doc 空 doc").c_str());
+            auto bad = ds.text_doc(nn::DatasetSubset::Train, build.train_docs.size() + 10);
             CHECK(!bad.has_value(), (tag + ": text_doc 越界报错").c_str());
         }
     }
@@ -353,10 +338,9 @@ int main()
 
     // 清理
     std::error_code ec;
-    for (const char *p : {"dataset_test_corpus.txt", "dataset_test_all.nndataset",
-                          "dataset_test_assistant.nndataset",
-                          "dataset_test_vocab.nnvocab", "dataset_test_bad.bin",
-                          "dataset_test_badver.bin"})
+    for (const char* p : {"dataset_test_corpus.txt", "dataset_test_all.nndataset",
+                          "dataset_test_assistant.nndataset", "dataset_test_vocab.nnvocab",
+                          "dataset_test_bad.bin", "dataset_test_badver.bin"})
         std::filesystem::remove(p, ec);
 
     std::printf("\ndataset_test: %d failure(s)\n", g_fail);
